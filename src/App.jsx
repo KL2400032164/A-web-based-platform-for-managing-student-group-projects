@@ -8,36 +8,14 @@ import StudentDashboard from './pages/StudentDashboard';
 import StudentProjects from './pages/StudentProjects';
 import ProjectDetails from './pages/ProjectDetails';
 import SubmissionPage from './pages/SubmissionPage';
-import { useAuth } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
-
-const PublicRoute = ({ children }) => {
-  const { isAuthenticated, user } = useAuth();
-  if (isAuthenticated) {
-    return <Navigate to={user.role === 'admin' ? '/admin' : '/student'} replace />;
-  }
-  return children;
-};
 
 const App = () => {
   return (
     <Routes>
-      <Route
-        path="/login"
-        element={
-          <PublicRoute>
-            <Login />
-          </PublicRoute>
-        }
-      />
-      <Route
-        path="/signup"
-        element={
-          <PublicRoute>
-            <Signup />
-          </PublicRoute>
-        }
-      />
+      <Route path="/" element={<Navigate to="/login" replace />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/signup" element={<Signup />} />
       <Route
         path="/admin"
         element={
