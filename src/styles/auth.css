@@ -75,6 +75,21 @@
   font-size: 0.88rem;
 }
 
+.info-text {
+  color: #1d4ed8;
+  font-size: 0.88rem;
+}
+
+.otp-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.5rem;
+}
+
+.otp-btn {
+  white-space: nowrap;
+}
+
 .success-text {
   color: #16a34a;
   font-weight: 600;
