@@ -50,3 +50,4 @@ That starts:
 - Demo users like `admin@gmail.com` and `student@gmail.com` still work.
 - If MySQL is not configured, the project falls back to the local JSON data for now.
 # SDP-REVIEW---2-STUDENT-GROUP-PROJECT-STATUS-
+# SDP-REVIEW---2-STUDENT-GROUP-PROJECT-STATUS-
