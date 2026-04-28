@@ -1,53 +1,49 @@
-# A-web-based-platform-for-managing-student-group-projects
+# Student Project Management System
 
-## MySQL setup
+Frontend: React + Vite  
+Backend: Node.js + Express (in-memory dummy data)
 
-This project can store login details in MySQL.
+## Run locally
 
-### 1. Configure the database connection
-
-The project now auto-loads `.env` for the backend. Update these values in [.env](/Users/haran/Documents/Fsad%20project/.env):
-
-```env
-MYSQL_HOST=127.0.0.1
-MYSQL_PORT=3306
-MYSQL_USER=root
-MYSQL_PASSWORD=
-MYSQL_DATABASE=student_project_management
-```
-
-### 2. Create the database and users table
-
-Run the SQL from [server/data/schema.sql](/Users/haran/Documents/Fsad%20project/server/data/schema.sql) in MySQL Workbench, VS Code MySQL extension, or the MySQL terminal.
-
-If you use MySQL terminal, the command is:
+1. Install dependencies:
 
 ```bash
-mysql -u root -p < server/data/schema.sql
+npm install
 ```
 
-### 3. Verify the connection
+2. Start backend only:
 
 ```bash
-npm run db:check
+npm run server
 ```
 
-If the connection is correct, it will print `MySQL connection successful`.
-
-### 4. Run the full project
+3. Start frontend only:
 
 ```bash
 npm run dev
 ```
 
-That starts:
-- the backend with `.env` loaded
-- the Vite frontend
+4. Start both together:
 
-### Notes
+```bash
+npm run dev:full
+```
 
-- New signup accounts will be stored in MySQL when MySQL is configured.
-- Demo users like `admin@gmail.com` and `student@gmail.com` still work.
-- If MySQL is not configured, the project falls back to the local JSON data for now.
-# SDP-REVIEW---2-STUDENT-GROUP-PROJECT-STATUS-
-# SDP-REVIEW---2-STUDENT-GROUP-PROJECT-STATUS-
+## API base URL
+
+- Backend runs on `http://localhost:5001`
+- Frontend can use:
+  - Vite proxy with `/api`
+  - or `VITE_API_BASE_URL=/api`
+
+## Main API endpoints
+
+- `GET /api/health`
+- `POST /api/auth/login`
+- `POST /api/auth/signup`
+- `GET /api/users?role=student`
+- `GET /api/projects?role=admin|student&userId=<id>`
+- `GET /api/projects/:projectId`
+- `POST /api/projects`
+- `PATCH /api/projects/:projectId/tasks/:taskId`
+- `POST /api/projects/:projectId/submissions`

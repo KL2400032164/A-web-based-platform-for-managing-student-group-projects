@@ -2,16 +2,37 @@ import { useEffect, useMemo, useState } from 'react';
 import Navbar from '../components/Navbar';
 import Sidebar from '../components/Sidebar';
 import ProjectCard from '../components/ProjectCard';
-import { projects, students } from '../data/dummyData';
+import ChatBox from '../components/ChatBox';
+import { useAuth } from '../context/AuthContext';
+import { projectApi, userApi } from '../lib/api';
 
 const AdminDashboard = () => {
-  const [projectList, setProjectList] = useState(projects);
+  const { user } = useAuth();
+  const [projectList, setProjectList] = useState([]);
+  const [students, setStudents] = useState([]);
+  const [error, setError] = useState('');
+  const [activeChatProjectId, setActiveChatProjectId] = useState('');
   const [newProject, setNewProject] = useState({
     title: '',
     description: '',
     deadline: '',
     assignedStudents: []
   });
+
+  const loadData = async () => {
+    if (!user) return;
+    try {
+      const [{ projects }, { users }] = await Promise.all([projectApi.list(user), userApi.list('student')]);
+      setProjectList(projects);
+      setStudents(users);
+      if (!activeChatProjectId && projects.length) {
+        setActiveChatProjectId(projects[0].id);
+      }
+      setError('');
+    } catch (requestError) {
+      setError(requestError.message);
+    }
+  };
 
   const handleProjectInput = (event) => {
     const { name, value } = event.target;
@@ -30,30 +51,17 @@ const AdminDashboard = () => {
     });
   };
 
-  const handleCreateProject = (event) => {
+  const handleCreateProject = async (event) => {
     event.preventDefault();
 
-    const createdProject = {
-      id: `p${Date.now()}`,
-      title: newProject.title,
-      description: newProject.description,
-      deadline: newProject.deadline,
-      assignedStudents: newProject.assignedStudents,
-      milestones: [
-        { id: 'm1', label: 'Kickoff', completion: 0 },
-        { id: 'm2', label: 'Development', completion: 0 },
-        { id: 'm3', label: 'Final Review', completion: 0 }
-      ],
-      tasks: [
-        { id: 't1', title: 'Requirement Analysis', status: 'Pending' },
-        { id: 't2', title: 'Core Implementation', status: 'Pending' },
-        { id: 't3', title: 'Testing', status: 'Pending' }
-      ],
-      finalSubmissions: []
-    };
-
-    setProjectList((prev) => [createdProject, ...prev]);
-    setNewProject({ title: '', description: '', deadline: '', assignedStudents: [] });
+    try {
+      const { project } = await projectApi.create(newProject);
+      setProjectList((prev) => [project, ...prev]);
+      setNewProject({ title: '', description: '', deadline: '', assignedStudents: [] });
+      setError('');
+    } catch (requestError) {
+      setError(requestError.message);
+    }
   };
 
   const submissionCount = useMemo(
@@ -65,11 +73,28 @@ const AdminDashboard = () => {
     document.title = 'Admin Dashboard | Student Project Management System';
   }, []);
 
+  useEffect(() => {
+    loadData();
+  }, [user]);
+
+  useEffect(() => {
+    if (!projectList.length) {
+      setActiveChatProjectId('');
+      return;
+    }
+
+    const exists = projectList.some((project) => project.id === activeChatProjectId);
+    if (!exists) {
+      setActiveChatProjectId(projectList[0].id);
+    }
+  }, [projectList, activeChatProjectId]);
+
   return (
     <div className="dashboard-shell">
       <Sidebar role="admin" />
       <main className="dashboard-main">
         <Navbar title="Admin Dashboard" />
+        {error && <p className="error-text">{error}</p>}
 
         <section className="stats-row">
           <article className="stat-card">
@@ -153,8 +178,8 @@ const AdminDashboard = () => {
               project.finalSubmissions.length ? (
                 <article key={project.id} className="submission-item">
                   <h4>{project.title}</h4>
-                  {project.finalSubmissions.map((submission, index) => (
-                    <p key={`${project.id}-${index}`}>
+                  {project.finalSubmissions.map((submission) => (
+                    <p key={submission.id}>
                       {submission.studentId}: {submission.comment}
                     </p>
                   ))}
@@ -163,6 +188,28 @@ const AdminDashboard = () => {
             )}
             {!submissionCount && <p className="empty-text">No submissions yet.</p>}
           </div>
+        </section>
+
+        <section className="card">
+          <div className="chat-project-head">
+            <h3>Project Chat Rooms</h3>
+            <select value={activeChatProjectId} onChange={(event) => setActiveChatProjectId(event.target.value)}>
+              {projectList.map((project) => (
+                <option key={project.id} value={project.id}>
+                  {project.title}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <ChatBox
+            projectId={activeChatProjectId}
+            title={
+              activeChatProjectId
+                ? `Chat: ${projectList.find((project) => project.id === activeChatProjectId)?.title || 'Project'}`
+                : 'Project Chat'
+            }
+          />
         </section>
       </main>
     </div>

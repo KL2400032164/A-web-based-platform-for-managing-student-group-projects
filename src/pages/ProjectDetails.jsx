@@ -1,25 +1,39 @@
+import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import MilestoneTracker from '../components/MilestoneTracker';
 import TaskCard from '../components/TaskCard';
-import { projects, students } from '../data/dummyData';
+import { projectApi } from '../lib/api';
 
 const ProjectDetails = () => {
   const { id } = useParams();
-  const project = projects.find((item) => item.id === id);
+  const [project, setProject] = useState(null);
+  const [error, setError] = useState('');
 
-  if (!project) {
+  useEffect(() => {
+    const loadProject = async () => {
+      try {
+        const { project: projectDetails } = await projectApi.getById(id);
+        setProject(projectDetails);
+        setError('');
+      } catch (requestError) {
+        setError(requestError.message);
+      }
+    };
+
+    loadProject();
+  }, [id]);
+
+  if (error || !project) {
     return (
       <div className="simple-page">
-        <h2>Project not found</h2>
+        <h2>{error || 'Project not found'}</h2>
         <Link to="/student" className="btn btn-primary">
           Back to Dashboard
         </Link>
       </div>
     );
   }
-
-  const assignedMembers = students.filter((student) => project.assignedStudents.includes(student.id));
 
   return (
     <div className="dashboard-main full-width-page">
@@ -33,7 +47,7 @@ const ProjectDetails = () => {
         </p>
 
         <div className="members-row">
-          {assignedMembers.map((member) => (
+          {project.assignedStudentDetails.map((member) => (
             <span key={member.id} className="member-tag">
               {member.name}
             </span>
@@ -53,7 +67,7 @@ const ProjectDetails = () => {
       <MilestoneTracker milestones={project.milestones} />
 
       <section className="submit-cta">
-        <Link to="/submit" className="btn btn-primary">
+        <Link to={`/submit?projectId=${project.id}`} className="btn btn-primary">
           Submit Final Work
         </Link>
       </section>
@@ -62,3 +76,4 @@ const ProjectDetails = () => {
 };
 
 export default ProjectDetails;
+

@@ -1,24 +1,46 @@
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import Navbar from '../components/Navbar';
-
-const SUBMISSION_STATUS_KEY = 'spms_student_submission_done';
+import { useAuth } from '../context/AuthContext';
+import { projectApi } from '../lib/api';
 
 const SubmissionPage = () => {
+  const { user } = useAuth();
+  const [searchParams] = useSearchParams();
+  const projectId = searchParams.get('projectId');
+
   const [comment, setComment] = useState('');
   const [fileName, setFileName] = useState('');
   const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState('');
 
   const handleFileChange = (event) => {
     const file = event.target.files?.[0];
     setFileName(file ? file.name : '');
   };
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
-    localStorage.setItem(SUBMISSION_STATUS_KEY, 'true');
-    setSubmitted(true);
-    setComment('');
-    setFileName('');
+
+    if (!projectId) {
+      setError('Missing project id. Open submission from a project card.');
+      return;
+    }
+
+    try {
+      await projectApi.submitFinalWork({
+        projectId,
+        studentId: user.id,
+        comment,
+        fileName
+      });
+      setSubmitted(true);
+      setError('');
+      setComment('');
+      setFileName('');
+    } catch (requestError) {
+      setError(requestError.message);
+    }
   };
 
   useEffect(() => {
@@ -58,10 +80,12 @@ const SubmissionPage = () => {
           </button>
         </form>
 
-        {submitted && <p className="success-text">Submission successful! (Frontend demo)</p>}
+        {error && <p className="error-text">{error}</p>}
+        {submitted && <p className="success-text">Submission successful.</p>}
       </section>
     </div>
   );
 };
 
 export default SubmissionPage;
+

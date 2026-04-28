@@ -19,9 +19,9 @@ const Signup = () => {
     if (error) setError('');
   };
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
-    const result = signup(formData);
+    const result = await signup(formData);
     if (!result.success) {
       setError(result.message);
       return;

@@ -1,8 +1,8 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { authApi } from '../lib/api';
 
 const AuthContext = createContext(null);
 const AUTH_STORAGE_KEY = 'spms_user';
-const USERS_STORAGE_KEY = 'spms_users';
 
 const getStoredUser = () => {
   try {
@@ -13,18 +13,8 @@ const getStoredUser = () => {
   }
 };
 
-const getStoredUsers = () => {
-  try {
-    const raw = localStorage.getItem(USERS_STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch (error) {
-    return [];
-  }
-};
-
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(getStoredUser);
-  const [registeredUsers, setRegisteredUsers] = useState(getStoredUsers);
 
   useEffect(() => {
     if (user) {
@@ -34,100 +24,53 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem(AUTH_STORAGE_KEY);
   }, [user]);
 
-  useEffect(() => {
-    localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(registeredUsers));
-  }, [registeredUsers]);
-
-  const login = ({ email, password, role }) => {
-    const normalizedEmail = email.trim().toLowerCase();
-    const credentialMap = {
-      'admin@gmail.com': 'admin',
-      'student@gmail.com': 'student'
+  const login = async ({ email, password, role }) => {
+    const normalizedEmail = email?.trim().toLowerCase();
+    const demoUsers = {
+      'admin@gmail.com': { role: 'admin', name: 'Admin User' },
+      'student@gmail.com': { role: 'student', name: 'Student User' }
     };
-    const matchedRole = credentialMap[normalizedEmail];
-    const createdAccount = registeredUsers.find((item) => item.email === normalizedEmail);
 
     if (!password?.trim()) {
       return { success: false, message: 'Password is required.' };
     }
 
-    if (matchedRole) {
-      if (role !== matchedRole) {
-        return {
-          success: false,
-          message: `Role mismatch. Select ${matchedRole} for ${normalizedEmail}.`
-        };
-      }
-
-      const authenticatedUser = {
-        email: normalizedEmail,
-        role: matchedRole,
-        name: matchedRole === 'admin' ? 'Admin User' : 'Student User'
-      };
-
+    try {
+      const { user: authenticatedUser } = await authApi.login({ email, password, role });
       setUser(authenticatedUser);
       return { success: true, user: authenticatedUser };
+    } catch (error) {
+      const demoUser = demoUsers[normalizedEmail];
+      if (demoUser) {
+        if (role !== demoUser.role) {
+          return {
+            success: false,
+            message: `Role mismatch. Select ${demoUser.role} for ${normalizedEmail}.`
+          };
+        }
+
+        const authenticatedUser = {
+          id: normalizedEmail,
+          name: demoUser.name,
+          email: normalizedEmail,
+          role: demoUser.role
+        };
+        setUser(authenticatedUser);
+        return { success: true, user: authenticatedUser };
+      }
+
+      return { success: false, message: error.message };
     }
-
-    if (!createdAccount) {
-      return {
-        success: false,
-        message: 'Invalid credentials. Create an account first or use admin/student demo login.'
-      };
-    }
-
-    if (createdAccount.password !== password) {
-      return { success: false, message: 'Incorrect password.' };
-    }
-
-    if (createdAccount.role !== role) {
-      return {
-        success: false,
-        message: `Role mismatch. Select ${createdAccount.role} for ${normalizedEmail}.`
-      };
-    }
-
-    const authenticatedUser = {
-      name: createdAccount.name,
-      email: createdAccount.email,
-      role: createdAccount.role
-    };
-
-    setUser(authenticatedUser);
-    return { success: true, user: authenticatedUser };
   };
 
-  const signup = ({ name, email, password, role }) => {
-    const normalizedEmail = email.trim().toLowerCase();
-    const emailExistsInDemo = normalizedEmail === 'admin@gmail.com' || normalizedEmail === 'student@gmail.com';
-    const emailExistsInCreated = registeredUsers.some((item) => item.email === normalizedEmail);
-
-    if (emailExistsInDemo || emailExistsInCreated) {
-      return { success: false, message: 'Account already exists for this email.' };
+  const signup = async ({ name, email, password, role }) => {
+    try {
+      const { user: authenticatedUser } = await authApi.signup({ name, email, password, role });
+      setUser(authenticatedUser);
+      return { success: true, user: authenticatedUser };
+    } catch (error) {
+      return { success: false, message: error.message };
     }
-
-    if (!password?.trim()) {
-      return { success: false, message: 'Password is required.' };
-    }
-
-    // Frontend-only registration flow using local context state + localStorage persistence.
-    const newUser = {
-      name: name.trim(),
-      email: normalizedEmail,
-      password,
-      role
-    };
-
-    setRegisteredUsers((prev) => [...prev, newUser]);
-
-    const authenticatedUser = {
-      name: newUser.name,
-      email: newUser.email,
-      role: newUser.role
-    };
-
-    setUser(authenticatedUser);
-    return { success: true, user: authenticatedUser };
   };
 
   const logout = () => {

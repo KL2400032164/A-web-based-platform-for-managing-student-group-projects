@@ -5,8 +5,10 @@ const SUBMISSION_STATUS_KEY = 'spms_student_submission_done';
 
 const ProjectCard = ({ project, role = 'student' }) => {
   const hasSubmittedWork = localStorage.getItem(SUBMISSION_STATUS_KEY) === 'true';
-  const progress = role === 'student' ? (hasSubmittedWork ? 50 : 0) : getProjectProgress(project);
-  const assignedMembers = students.filter((student) => project.assignedStudents.includes(student.id));
+  const progress = project.progress ?? (role === 'student' ? (hasSubmittedWork ? 50 : 0) : getProjectProgress(project));
+  const assignedMembers =
+    project.assignedStudentDetails ||
+    students.filter((student) => project.assignedStudents?.includes(student.id));
 
   return (
     <article className="card project-card">
@@ -39,7 +41,7 @@ const ProjectCard = ({ project, role = 'student' }) => {
           View Details
         </Link>
         {role === 'student' && (
-          <Link to="/submit" className="btn btn-primary">
+          <Link to={`/submit?projectId=${project.id}`} className="btn btn-primary">
             Submit Work
           </Link>
         )}
